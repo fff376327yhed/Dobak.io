@@ -1488,24 +1488,20 @@ function bestHand(cards){
 // ════════════════════════════════════════════════
 // 📊 GAME RESULT SAVE (매 게임 종료 시 현재 코인 전송)
 // ════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyw593Mf_Q31l0RHq35owKFYD4WGFp-9GmPW_D0fX0rrvGl6baFggRrj37PbA7AbPit/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtUeAiod-Ah8yC34UwSC2yEMgZO9kd2nAgGWVrnmer2xnkpOYN/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 async function saveGameResult() {
   if (!currentUser || currentUser.uid === 'guest') return;
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({
-        secret: ACHIEVEMENT_SECRET,
-        uid: currentUser.uid,
-        name: currentUser.name,
-        achievement: 'coins_update',   // Apps Script 필수 필드
-        coins: gs.balance,
-        timestamp: new Date().toISOString()
-      })
+    const params = new URLSearchParams({
+      secret     : ACHIEVEMENT_SECRET,
+      uid        : currentUser.uid,
+      name       : currentUser.name,
+      achievement: 'coins_update',
+      coins      : gs.balance
     });
+    await fetch(`${SCRIPT_URL}?${params}`, { mode: 'no-cors' });
   } catch(e) {
     console.warn('Game result save failed:', e);
   }
