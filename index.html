@@ -1492,10 +1492,8 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtU
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 function saveGameResult() {
-  console.log('[BAP] saveGameResult called | user:', currentUser?.uid, '| balance:', gs.balance);
   if (!currentUser || currentUser.uid === 'guest') {
-    console.log('[BAP] saveGameResult skipped — guest or not logged in');
-    return;
+      return;
   }
   const params = new URLSearchParams({
     secret     : ACHIEVEMENT_SECRET,
@@ -1504,10 +1502,7 @@ function saveGameResult() {
     achievement: 'coins_update',
     coins      : gs.balance
   });
-  const url = `${SCRIPT_URL}?${params}`;
-  console.log('[BAP] saveGameResult sending:', url);
-  new Image().src = url;
-  console.log('[BAP] saveGameResult beacon fired');
+  new Image().src = `${SCRIPT_URL}?${params}`;
 }
 
 // ════════════════════════════════════════════════
@@ -1554,7 +1549,6 @@ function showStageHint(stage) {
 // START GAME
 // ════════════════════════════════════════════════
 window.startNewGame=async()=>{
-  console.log('[BAP] startNewGame | user:', currentUser?.uid, '| balance:', gs.balance);
   if(gs.active) return;
   initAudio(); SFX.newgame();
   document.getElementById('result-overlay').classList.remove('show');
@@ -1594,8 +1588,8 @@ window.startNewGame=async()=>{
 // BETTING ACTIONS
 // ════════════════════════════════════════════════
 window.playerFold=async()=>{
-  console.log('[BAP] playerFold triggered | active:', gs.active);
-  if(!gs.active)return; SFX.fold(); gs.active=false;
+  if(!gs.active||_actionsLocked)return; SFX.fold(); gs.active=false;
+  lockActions(true);
   try {
     toast('폴드! 딜러 승리','lose');
     setStatus('폴드! 딜러가 팟을 가져갑니다.');
@@ -1607,22 +1601,23 @@ window.playerFold=async()=>{
     setTimeout(()=>document.getElementById('dealer-wrap').classList.remove('dealer-winning'),1200);
     gs.dealerBalance+=(gs.pot-gs.dealerBet);
     saveGameResult();
-    if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
+    if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
     showResult('fold',-gs.playerBet,null,null,null,null);
   } catch(err) {
-    console.error('[BAP] playerFold ERROR:', err);
-  }
+    }
 };
 
 window.playerCheck=async()=>{
-  if(!gs.active)return; SFX.check();
+  if(!gs.active||_actionsLocked)return; SFX.check();
+  lockActions(true);
   toast('체크 — 딜러 반응 대기','action');
   hideBetBar();
   await postPlayerAction('check');
 };
 
 window.playerCall=async()=>{
-  if(!gs.active||gs.currentBet<=0)return; SFX.call();
+  if(!gs.active||gs.currentBet<=0||_actionsLocked)return; SFX.call();
+  lockActions(true);
   const amt=Math.min(gs.currentBet,gs.balance);
   gs.balance-=amt; gs.pot+=amt; gs.playerBet+=amt; gs.currentBet=0;
   updateBalance(); updatePot();
@@ -1633,7 +1628,8 @@ window.playerCall=async()=>{
 };
 
 window.playerRaise=async(customAmt)=>{
-  if(!gs.active)return;
+  if(!gs.active||_actionsLocked)return;
+  lockActions(true);
   const amt=customAmt??(parseInt(document.getElementById('bet-input')?.value)||40);
   if(amt<20||amt>gs.balance){toast('베팅 금액 오류','lose');return;}
   SFX.raise();
@@ -1647,7 +1643,8 @@ window.playerRaise=async(customAmt)=>{
 };
 
 window.playerAllIn=async()=>{
-  if(!gs.active||gs.balance<=0)return; SFX.allin();
+  if(!gs.active||gs.balance<=0||_actionsLocked)return; SFX.allin();
+  lockActions(true);
   allinEffect();
   const amt=gs.balance;
   toast(`🔥 ALL IN! ${amt} 코인 전부!`,'win',3000);
@@ -1669,16 +1666,18 @@ window.playerAllIn=async()=>{
 
 // 플레이어 액션 후 딜러 AI 처리
 async function postPlayerAction(action){
+  lockActions(true);
   if(gs.dealerRaisedThisStage){
-    // 딜러 레이즈에 플레이어가 응답 → 바로 다음 스테이지
     gs.dealerRaisedThisStage=false;
     await nextStage();
+    lockActions(false);
     return;
   }
   const result=await runDealerAI(action);
-  if(result==='fold')return;      // 딜러 폴드 → 게임 종료
-  if(result==='raise')return;     // 딜러 레이즈 → 플레이어 다시 액션
+  if(result==='fold'){lockActions(false);return;}
+  if(result==='raise'){lockActions(false);return;}
   await nextStage();
+  lockActions(false);
 }
 
 // ════════════════════════════════════════════════
@@ -1716,7 +1715,6 @@ function dealerCurrentStrength(){
 
 // 딜러 폴드
 async function _dealerFold(){
-  console.log('[BAP] _dealerFold triggered | balance:', gs.balance);
   gs.active=false;
   SFX.fold();
   document.getElementById('dealer-wrap').classList.add('dealer-losing');
@@ -1729,7 +1727,8 @@ async function _dealerFold(){
   document.getElementById('hint-panel').classList.add('hidden');
   showIdleActions(); hideBetBar();
   saveGameResult();
-  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
+  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
+  lockActions(false);
   showResult('win',gs.pot-gs.playerBet,'팟 획득','딜러 폴드',null,null);
   return 'fold';
 }
@@ -1866,7 +1865,6 @@ async function nextStage(){
 }
 
 async function showdown(){
-  console.log('[BAP] showdown triggered | balance:', gs.balance, '| user:', currentUser?.uid);
   gs.active=false; SFX.showdown();
   document.getElementById('hint-panel').classList.add('hidden');
   setStatus('쇼다운! 패를 공개합니다...');
@@ -1909,8 +1907,8 @@ async function showdown(){
   updateBalance();
   // saveGameResult 먼저 (Firestore 대기 없이 즉시 전송)
   saveGameResult();
-  // saveCoins는 백그라운드에서 (await 없이)
-  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
+  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
+  lockActions(false);
   showIdleActions();
   showResult(type,delta,pRes.detailName,dRes.detailName,pRes,dRes);
 }
@@ -2010,6 +2008,16 @@ function updateStageUI(){
   });
   document.getElementById('stage-name').textContent=STAGE_NAMES[gs.stage]||'—';
 }
+// ════════════════════════════════════════════════
+// 🔒 BUTTON LOCK — 딜러 차례 중 모든 액션 버튼 비활성화
+// ════════════════════════════════════════════════
+let _actionsLocked = false;
+function lockActions(on) {
+  _actionsLocked = on;
+  document.querySelectorAll('.btn-action,.btn-new-game,.btn-persistent')
+    .forEach(b => { b.disabled = on; b.style.opacity = on ? '0.35' : ''; });
+}
+
 function showBettingActions(){
   const canCheck=gs.currentBet===0;
   const canCall=gs.currentBet>0&&gs.balance>0;
