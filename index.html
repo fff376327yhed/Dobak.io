@@ -1500,11 +1500,11 @@ async function checkAchievement() {
     try {
       await fetch(SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, // ← 추가
+        mode: 'no-cors',            // CORS preflight 우회
         body: JSON.stringify({
           secret: ACHIEVEMENT_SECRET,
           uid: currentUser.uid,
-          name: currentUser.name,   // ← 추가
+          name: currentUser.name,
           achievement: 'poker_10000',
           coins: gs.balance
         })
