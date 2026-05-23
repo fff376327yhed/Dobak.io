@@ -1486,6 +1486,34 @@ function bestHand(cards){
 }
 
 // ════════════════════════════════════════════════
+// 🏆 ACHIEVEMENT
+// ════════════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyz94hsx3jcv6kV818Z_v2jzcJHY8RlFS800dYSHZYat0WGFwn5BdOYIeKwhShGfJ-x/exec';
+const ACHIEVEMENT_SECRET = 'hsgcomet'; // Apps Script와 동일하게
+let achievement10kSent = false; // 중복 전송 방지
+
+async function checkAchievement() {
+  if (achievement10kSent) return;
+  if (gs.balance >= 10000) {
+    achievement10kSent = true;
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          secret: ACHIEVEMENT_SECRET,
+          uid: currentUser.uid,
+          achievement: 'poker_10000',
+          coins: gs.balance
+        })
+      });
+      toast('🏆 도전과제 달성! 10,000코인 돌파! 해정뉴스에서 확인하세요.', 'win', 4000);
+    } catch(e) {
+      console.warn('Achievement save failed:', e);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════
 // GAME STATE
 // ════════════════════════════════════════════════
 const gs={
