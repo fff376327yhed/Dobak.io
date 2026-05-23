@@ -6,7 +6,7 @@
 <title>BACK ALLEY POKER</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════ VARS. */
+/* ═══════════════════════════════════════════════ VARS */
 :root {
   --bg:#060404;--felt:#0b2215;--felt-rim:#071a0f;
   --gold:#c8a232;--gold-light:#f0c84a;
@@ -1596,18 +1596,22 @@ window.startNewGame=async()=>{
 window.playerFold=async()=>{
   console.log('[BAP] playerFold triggered | active:', gs.active);
   if(!gs.active)return; SFX.fold(); gs.active=false;
-  toast('폴드! 딜러 승리','lose');
-  setStatus('폴드! 딜러가 팟을 가져갑니다.');
-  document.getElementById('hint-panel').classList.add('hidden');
-  showIdleActions(); hideBetBar();
-  revealDealerCards(); await sleep(600);
-  tableGlow('lose');
-  document.getElementById('dealer-wrap').classList.add('dealer-winning');
-  setTimeout(()=>document.getElementById('dealer-wrap').classList.remove('dealer-winning'),1200);
-  gs.dealerBalance+=(gs.pot-gs.dealerBet); // 딜러 수익 기록
-  if(currentUser) await saveCoins(currentUser.uid,gs.balance);
-  saveGameResult(); // 스프레드시트 전송
-  showResult('fold',-gs.playerBet,null,null,null,null);
+  try {
+    toast('폴드! 딜러 승리','lose');
+    setStatus('폴드! 딜러가 팟을 가져갑니다.');
+    document.getElementById('hint-panel').classList.add('hidden');
+    showIdleActions(); hideBetBar();
+    revealDealerCards(); await sleep(600);
+    tableGlow('lose');
+    document.getElementById('dealer-wrap').classList.add('dealer-winning');
+    setTimeout(()=>document.getElementById('dealer-wrap').classList.remove('dealer-winning'),1200);
+    gs.dealerBalance+=(gs.pot-gs.dealerBet);
+    saveGameResult();
+    if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
+    showResult('fold',-gs.playerBet,null,null,null,null);
+  } catch(err) {
+    console.error('[BAP] playerFold ERROR:', err);
+  }
 };
 
 window.playerCheck=async()=>{
@@ -1724,8 +1728,8 @@ async function _dealerFold(){
   gs.balance+=gs.pot; updateBalance();
   document.getElementById('hint-panel').classList.add('hidden');
   showIdleActions(); hideBetBar();
-  if(currentUser) await saveCoins(currentUser.uid,gs.balance);
-  saveGameResult(); // 스프레드시트 전송
+  saveGameResult();
+  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
   showResult('win',gs.pot-gs.playerBet,'팟 획득','딜러 폴드',null,null);
   return 'fold';
 }
@@ -1903,8 +1907,10 @@ async function showdown(){
   }
 
   updateBalance();
-  if(currentUser) await saveCoins(currentUser.uid,gs.balance);
-  saveGameResult(); // 스프레드시트 전송
+  // saveGameResult 먼저 (Firestore 대기 없이 즉시 전송)
+  saveGameResult();
+  // saveCoins는 백그라운드에서 (await 없이)
+  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(e=>console.warn('[BAP] saveCoins bg error:',e));
   showIdleActions();
   showResult(type,delta,pRes.detailName,dRes.detailName,pRes,dRes);
 }
