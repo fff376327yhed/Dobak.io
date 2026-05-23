@@ -1492,7 +1492,11 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtU
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 function saveGameResult() {
-  if (!currentUser || currentUser.uid === 'guest') return;
+  console.log('[BAP] saveGameResult called | user:', currentUser?.uid, '| balance:', gs.balance);
+  if (!currentUser || currentUser.uid === 'guest') {
+    console.log('[BAP] saveGameResult skipped — guest or not logged in');
+    return;
+  }
   const params = new URLSearchParams({
     secret     : ACHIEVEMENT_SECRET,
     uid        : currentUser.uid,
@@ -1500,7 +1504,10 @@ function saveGameResult() {
     achievement: 'coins_update',
     coins      : gs.balance
   });
-  new Image().src = `${SCRIPT_URL}?${params}`;
+  const url = `${SCRIPT_URL}?${params}`;
+  console.log('[BAP] saveGameResult sending:', url);
+  new Image().src = url;
+  console.log('[BAP] saveGameResult beacon fired');
 }
 
 // ════════════════════════════════════════════════
