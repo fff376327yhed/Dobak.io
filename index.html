@@ -1501,6 +1501,7 @@ async function saveGameResult() {
         secret: ACHIEVEMENT_SECRET,
         uid: currentUser.uid,
         name: currentUser.name,
+        achievement: 'coins_update',   // Apps Script 필수 필드
         coins: gs.balance,
         timestamp: new Date().toISOString()
       })
