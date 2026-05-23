@@ -1492,9 +1492,7 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtU
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 function saveGameResult() {
-  if (!currentUser || currentUser.uid === 'guest') {
-      return;
-  }
+  if (!currentUser || currentUser.uid === 'guest') return;
   const params = new URLSearchParams({
     secret     : ACHIEVEMENT_SECRET,
     uid        : currentUser.uid,
@@ -1502,7 +1500,13 @@ function saveGameResult() {
     achievement: 'coins_update',
     coins      : gs.balance
   });
-  new Image().src = `${SCRIPT_URL}?${params}`;
+  const url = `${SCRIPT_URL}?${params}`;
+  // sendBeacon: 페이지 종료 후에도 전송 보장, HTTPS 환경에서 가장 안정적
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(url);
+  } else {
+    fetch(url, { mode: 'no-cors', keepalive: true }).catch(() => {});
+  }
 }
 
 // ════════════════════════════════════════════════
