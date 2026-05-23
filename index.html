@@ -1488,20 +1488,23 @@ function bestHand(cards){
 // ════════════════════════════════════════════════
 // 🏆 ACHIEVEMENT
 // ════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyz94hsx3jcv6kV818Z_v2jzcJHY8RlFS800dYSHZYat0WGFwn5BdOYIeKwhShGfJ-x/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFh0kisLg9FqMppSNRzBiYIuLiwXN24StuxTrarf9rubs7EOP9GYMIZjhLIcDonC9m/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet'; // Apps Script와 동일하게
 let achievement10kSent = false; // 중복 전송 방지
 
 async function checkAchievement() {
   if (achievement10kSent) return;
+  if (!currentUser || currentUser.uid === 'guest') return; // 게스트는 저장 안 함
   if (gs.balance >= 10000) {
     achievement10kSent = true;
     try {
       await fetch(SCRIPT_URL, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, // ← 추가
         body: JSON.stringify({
           secret: ACHIEVEMENT_SECRET,
           uid: currentUser.uid,
+          name: currentUser.name,   // ← 추가
           achievement: 'poker_10000',
           coins: gs.balance
         })
