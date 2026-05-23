@@ -1985,11 +1985,14 @@ function updateStrengthBar(forceStrength){
 // ════════════════════════════════════════════════
 // UI HELPERS
 // ════════════════════════════════════════════════
-function updateBalance(){
+  function updateBalance(){
   document.getElementById('balance-display').textContent=gs.balance.toLocaleString();
   const b=document.querySelector('.balance-badge');
   b.classList.remove('balance-flash'); void b.offsetWidth; b.classList.add('balance-flash');
+  // 10,000코인 달성 체크
+  if(gs.active || !gs.active) checkAchievement();
 }
+
 function updatePot(){document.getElementById('pot-display').textContent=`💰 ${gs.pot.toLocaleString()}`;}
 function setStatus(msg){document.getElementById('status-msg').textContent=msg;}
 function updateStageUI(){
