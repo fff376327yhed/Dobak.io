@@ -1378,14 +1378,16 @@ document.getElementById('btn-guest-login').onclick=async()=>{
 };
 window.logout=async()=>{
   SFX.click();
-  // 로그아웃 전 현재 잔액 저장 (0코인도 정확히 보존)
-  if(currentUser) await saveCoins(currentUser.uid,gs.balance);
-  currentUser=null;
-  if(auth) auth.signOut().catch(()=>{});
+  // UI 전환을 await 전에 먼저 실행 (saveCoins가 느려도 즉시 로비로)
+  document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('game-screen').classList.remove('active');
   stopBGM(); resetGame();
   history.replaceState(null,'','#'+randomHash());
+  // 코인 저장은 백그라운드에서 처리
+  if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
+  currentUser=null;
+  if(auth) auth.signOut().catch(()=>{});
 };
 
 async function enterGame(user) {
