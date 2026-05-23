@@ -1554,6 +1554,7 @@ function showStageHint(stage) {
 // START GAME
 // ════════════════════════════════════════════════
 window.startNewGame=async()=>{
+  console.log('[BAP] startNewGame | user:', currentUser?.uid, '| balance:', gs.balance);
   if(gs.active) return;
   initAudio(); SFX.newgame();
   document.getElementById('result-overlay').classList.remove('show');
@@ -1593,6 +1594,7 @@ window.startNewGame=async()=>{
 // BETTING ACTIONS
 // ════════════════════════════════════════════════
 window.playerFold=async()=>{
+  console.log('[BAP] playerFold triggered | active:', gs.active);
   if(!gs.active)return; SFX.fold(); gs.active=false;
   toast('폴드! 딜러 승리','lose');
   setStatus('폴드! 딜러가 팟을 가져갑니다.');
@@ -1710,6 +1712,7 @@ function dealerCurrentStrength(){
 
 // 딜러 폴드
 async function _dealerFold(){
+  console.log('[BAP] _dealerFold triggered | balance:', gs.balance);
   gs.active=false;
   SFX.fold();
   document.getElementById('dealer-wrap').classList.add('dealer-losing');
@@ -1859,6 +1862,7 @@ async function nextStage(){
 }
 
 async function showdown(){
+  console.log('[BAP] showdown triggered | balance:', gs.balance, '| user:', currentUser?.uid);
   gs.active=false; SFX.showdown();
   document.getElementById('hint-panel').classList.add('hidden');
   setStatus('쇼다운! 패를 공개합니다...');
