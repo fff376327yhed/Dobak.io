@@ -1491,20 +1491,16 @@ function bestHand(cards){
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtUeAiod-Ah8yC34UwSC2yEMgZO9kd2nAgGWVrnmer2xnkpOYN/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
-async function saveGameResult() {
+function saveGameResult() {
   if (!currentUser || currentUser.uid === 'guest') return;
-  try {
-    const params = new URLSearchParams({
-      secret     : ACHIEVEMENT_SECRET,
-      uid        : currentUser.uid,
-      name       : currentUser.name,
-      achievement: 'coins_update',
-      coins      : gs.balance
-    });
-    await fetch(`${SCRIPT_URL}?${params}`, { mode: 'no-cors' });
-  } catch(e) {
-    console.warn('Game result save failed:', e);
-  }
+  const params = new URLSearchParams({
+    secret     : ACHIEVEMENT_SECRET,
+    uid        : currentUser.uid,
+    name       : currentUser.name,
+    achievement: 'coins_update',
+    coins      : gs.balance
+  });
+  new Image().src = `${SCRIPT_URL}?${params}`;
 }
 
 // ════════════════════════════════════════════════
