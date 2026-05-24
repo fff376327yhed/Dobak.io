@@ -1345,10 +1345,17 @@ async function loadCoins(uid) {
   }
   return 1000;
 }
-async function saveCoins(uid,amt) {
-  localStorage.setItem(`bap_coins_${uid}`,amt);
-  if(db&&uid!=='guest'){
-    try{await window._ff.setDoc(window._ff.doc(db,'players',uid),{coins:amt,updatedAt:Date.now()},{merge:true});}catch(e){}
+async function saveCoins(uid, amt) {
+  localStorage.setItem(`bap_coins_${uid}`, amt);
+
+  // ✅ Google 공통 UID로도 저장 (크로스 사이트 동기화용)
+  const googleUid = auth?.currentUser?.providerData?.[0]?.uid;
+  if (googleUid) {
+    localStorage.setItem(`bap_coins_google_${googleUid}`, amt);
+  }
+
+  if(db && uid !== 'guest'){
+    try{ await window._ff.setDoc(window._ff.doc(db,'players',uid),{coins:amt,updatedAt:Date.now()},{merge:true}); }catch(e){}
   }
 }
 
