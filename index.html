@@ -1345,17 +1345,25 @@ async function loadCoins(uid) {
   }
   return 1000;
 }
-async function saveCoins(uid, amt) {
+// ✅ 수정 후
+async function saveCoins(uid,amt) {
+  // ── 기존 저장 ──
   localStorage.setItem(`bap_coins_${uid}`, amt);
+  console.log(`[포커💾] saveCoins: uid=${uid}, amt=${amt}`);
 
-  // ✅ Google 공통 UID로도 저장 (크로스 사이트 동기화용)
+  // ── 크로스 사이트용 Google UID 저장 ──
   const googleUid = auth?.currentUser?.providerData?.[0]?.uid;
   if (googleUid) {
     localStorage.setItem(`bap_coins_google_${googleUid}`, amt);
+    console.log(`[포커💾] Google UID 저장 완료: bap_coins_google_${googleUid} = ${amt}`);
+  } else {
+    console.warn('[포커⚠️] auth.currentUser 없음 — Google UID 저장 스킵');
   }
 
   if(db && uid !== 'guest'){
-    try{ await window._ff.setDoc(window._ff.doc(db,'players',uid),{coins:amt,updatedAt:Date.now()},{merge:true}); }catch(e){}
+    try{await window._ff.setDoc(window._ff.doc(db,'players',uid),{coins:amt,updatedAt:Date.now()},{merge:true});}catch(e){
+      console.warn('[포커⚠️] Firestore 저장 실패:', e);
+    }
   }
 }
 
