@@ -1506,8 +1506,10 @@ function bestHand(cards){
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtUeAiod-Ah8yC34UwSC2yEMgZO9kd2nAgGWVrnmer2xnkpOYN/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
+// ✅ 수정 후 (디버그 로그 + fetch redirect 처리)
 function saveGameResult() {
   if (!currentUser || currentUser.uid === 'guest') return;
+
   const params = new URLSearchParams({
     secret     : ACHIEVEMENT_SECRET,
     uid        : currentUser.uid,
@@ -1516,12 +1518,26 @@ function saveGameResult() {
     coins      : gs.balance
   });
   const url = `${SCRIPT_URL}?${params}`;
-  // sendBeacon: 페이지 종료 후에도 전송 보장, HTTPS 환경에서 가장 안정적
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(url);
-  } else {
-    fetch(url, { mode: 'no-cors', keepalive: true }).catch(() => {});
-  }
+
+  console.log('[스프레드시트📤] 전송 시도:', {
+    uid  : currentUser.uid,
+    name : currentUser.name,
+    coins: gs.balance,
+    url  : url
+  });
+
+  // sendBeacon은 Apps Script 리다이렉트를 못 따라가므로 fetch로 교체
+  fetch(url, { redirect: 'follow' })
+    .then(res => {
+      console.log('[스프레드시트✅] 응답 status:', res.status, res.ok ? 'OK' : 'FAIL');
+      return res.text();
+    })
+    .then(text => {
+      console.log('[스프레드시트✅] 응답 내용:', text);
+    })
+    .catch(err => {
+      console.error('[스프레드시트❌] 전송 실패:', err);
+    });
 }
 
 // ════════════════════════════════════════════════
