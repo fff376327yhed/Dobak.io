@@ -1506,7 +1506,7 @@ function bestHand(cards){
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyj3UNS1tKXnLgflfqtUeAiod-Ah8yC34UwSC2yEMgZO9kd2nAgGWVrnmer2xnkpOYN/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
-// ✅ 수정 후 (디버그 로그 + fetch redirect 처리)
+// ✅ 수정 후
 function saveGameResult() {
   if (!currentUser || currentUser.uid === 'guest') return;
 
@@ -1522,22 +1522,16 @@ function saveGameResult() {
   console.log('[스프레드시트📤] 전송 시도:', {
     uid  : currentUser.uid,
     name : currentUser.name,
-    coins: gs.balance,
-    url  : url
+    coins: gs.balance
   });
 
-  // sendBeacon은 Apps Script 리다이렉트를 못 따라가므로 fetch로 교체
   fetch(url, { redirect: 'follow' })
     .then(res => {
-      console.log('[스프레드시트✅] 응답 status:', res.status, res.ok ? 'OK' : 'FAIL');
+      console.log('[스프레드시트✅] status:', res.status);
       return res.text();
     })
-    .then(text => {
-      console.log('[스프레드시트✅] 응답 내용:', text);
-    })
-    .catch(err => {
-      console.error('[스프레드시트❌] 전송 실패:', err);
-    });
+    .then(text => console.log('[스프레드시트✅] 응답:', text))
+    .catch(err => console.error('[스프레드시트❌] 실패:', err.message));
 }
 
 // ════════════════════════════════════════════════
