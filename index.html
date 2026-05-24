@@ -1508,6 +1508,8 @@ const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 // ✅ 수정 후
 function saveGameResult() {
+  // ✅ 이 줄만 추가
+  console.log('[스프레드시트🔍] 함수 진입: currentUser=', currentUser, 'uid=', currentUser?.uid);
   if (!currentUser || currentUser.uid === 'guest') return;
 
   const params = new URLSearchParams({
