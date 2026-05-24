@@ -1512,13 +1512,14 @@ function saveGameResult() {
   console.log('[스프레드시트🔍] 함수 진입: currentUser=', currentUser, 'uid=', currentUser?.uid);
   if (!currentUser || currentUser.uid === 'guest') return;
 
-  const params = new URLSearchParams({
-    secret     : ACHIEVEMENT_SECRET,
-    uid        : currentUser.uid,
-    name       : currentUser.name,
-    achievement: 'coins_update',
-    coins      : gs.balance
-  });
+  const googleUid = auth?.currentUser?.providerData?.[0]?.uid || currentUser.uid;
+const params = new URLSearchParams({
+  secret     : ACHIEVEMENT_SECRET,
+  uid        : googleUid,          // ← Google UID (뉴스사이트와 공유 가능)
+  name       : currentUser.name,
+  achievement: 'coins_update',
+  coins      : gs.balance
+});
   const url = `${SCRIPT_URL}?${params}`;
 
   console.log('[스프레드시트📤] 전송 시도:', {
