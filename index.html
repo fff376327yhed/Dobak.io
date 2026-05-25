@@ -608,6 +608,63 @@ body::after{
 .btn-earn-back:hover{border-color:rgba(255,255,255,.28);color:var(--text);}
 .earn-tap-hint{font-size:.65rem;color:rgba(255,255,255,.18);letter-spacing:.08em;animation:flicker 3s infinite;}
 
+/* ═══ LEADERBOARD */
+#leaderboard-wrap{
+  width:100%;max-width:400px;
+  background:rgba(8,4,2,.92);border:1px solid rgba(200,162,50,.28);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 0 30px rgba(0,0,0,.7);
+}
+.lb-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.7rem 1.1rem;border-bottom:1px solid rgba(200,162,50,.18);
+  background:rgba(0,0,0,.35);
+}
+.lb-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.15em;color:var(--gold);}
+.lb-refresh{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:2px 6px;transition:color .2s;}
+.lb-refresh:hover{color:var(--gold);}
+.lb-list{list-style:none;padding:.3rem 0;}
+.lb-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.42rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+}
+.lb-row:last-child{border-bottom:none;}
+.lb-row:hover{background:rgba(255,255,255,.03);}
+.lb-rank{
+  font-family:'Bebas Neue',sans-serif;font-size:.95rem;
+  min-width:22px;text-align:center;
+}
+.lb-rank.r1{color:#ffd700;text-shadow:0 0 8px #ffd700;}
+.lb-rank.r2{color:#c0c0c0;text-shadow:0 0 6px #c0c0c0;}
+.lb-rank.r3{color:#cd7f32;text-shadow:0 0 6px #cd7f32;}
+.lb-rank.rn{color:var(--muted);}
+.lb-name{font-family:'Oswald',sans-serif;font-size:.82rem;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-coins{font-family:'Oswald',sans-serif;font-size:.82rem;font-weight:700;color:var(--gold-light);white-space:nowrap;}
+.lb-empty{padding:1rem;text-align:center;font-size:.78rem;color:var(--muted);}
+.lb-loading{display:flex;align-items:center;justify-content:center;padding:1rem;gap:.5rem;color:var(--muted);font-size:.78rem;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lb-spinner{width:14px;height:14px;border:2px solid rgba(200,162,50,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+
+/* ═══ BLOCKED OVERLAY */
+#blocked-overlay{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:#060404;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.2rem;padding:2rem;
+}
+#blocked-overlay.show{display:flex;}
+.blocked-icon{font-size:3.5rem;}
+.blocked-title{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:.1em;color:var(--neon-red);text-shadow:0 0 20px var(--neon-red);}
+.blocked-msg{font-size:.88rem;color:var(--muted);text-align:center;line-height:1.7;max-width:320px;}
+.blocked-link{
+  margin-top:.5rem;padding:10px 28px;
+  background:rgba(200,162,50,.1);border:1px solid rgba(200,162,50,.4);
+  border-radius:4px;color:var(--gold);font-family:'Oswald',sans-serif;
+  font-size:.9rem;letter-spacing:.08em;cursor:pointer;
+  text-decoration:none;transition:all .2s;
+}
+.blocked-link:hover{background:rgba(200,162,50,.2);box-shadow:0 0 12px rgba(200,162,50,.3);}
+
 /* ═══ RESPONSIVE */
 @media(max-width:480px){
   :root{--card-w:52px;--card-h:76px;}
@@ -624,6 +681,15 @@ body::after{
 <canvas id="confetti-canvas"></canvas>
 <div id="win-flash"></div>
 <div id="toast-container"></div>
+
+<!-- ═══════════════ BLOCKED OVERLAY ═══════════════ -->
+<div id="blocked-overlay">
+  <div class="blocked-icon">🚫</div>
+  <div class="blocked-title">ACCESS DENIED</div>
+  <div class="blocked-msg">이 게임은 해정뉴스에서만 접속할 수 있습니다.<br>아래 버튼을 눌러 해정뉴스로 이동하세요.</div>
+  <a class="blocked-link" href="https://fff376327yhed.github.io/hsj_news.io/" target="_top">🔗 해정뉴스로 이동</a>
+</div>
+
 <div id="app">
 
 <!-- ═══════════════ LOGIN ═══════════════ -->
@@ -647,6 +713,18 @@ body::after{
     <button class="btn-guest" id="btn-guest-login">🎲 게스트로 플레이</button>
     <button class="btn-guest" style="margin-top:.5rem;border-color:rgba(200,162,50,.25);color:var(--gold)" onclick="openEarn('login')">💰 돈 벌기</button>
   </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboard-wrap">
+    <div class="lb-header">
+      <div class="lb-title">🏆 코인 랭킹</div>
+      <button class="lb-refresh" onclick="loadLeaderboard()" title="새로고침">↻</button>
+    </div>
+    <div id="lb-body">
+      <div class="lb-loading"><div class="lb-spinner"></div>순위 불러오는 중...</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════ GAME SCREEN ═══════════════ -->
@@ -924,8 +1002,40 @@ body::after{
 
 <script type="module">
 // ════════════════════════════════════════════════
-// 🔒 LINK SECURITY & URL RANDOMIZATION
+// 🔒 ORIGIN GUARD — 허용된 출처에서만 접근 가능
 // ════════════════════════════════════════════════
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // 직접 주소 입력 (referrer 없음) 허용
+  try {
+    const u = new URL(origin);
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    if (u.hostname === 'fff376327yhed.github.io') return true;
+    return false;
+  } catch(e) { return false; }
+}
+
+// referrer 검사 — 다른 사이트에서 링크로 들어올 경우 차단
+(function() {
+  const ref = document.referrer;
+  if (ref && !isAllowedOrigin(ref)) {
+    document.getElementById('blocked-overlay').classList.add('show');
+    document.getElementById('app').style.display = 'none';
+  }
+  // iframe 임베딩 차단 (다른 사이트 내 iframe에서 실행되면 차단)
+  if (window.top !== window.self) {
+    try {
+      const parentOrigin = document.referrer ? new URL(document.referrer).origin : '';
+      if (!isAllowedOrigin(parentOrigin || '')) {
+        document.getElementById('blocked-overlay').classList.add('show');
+        document.getElementById('app').style.display = 'none';
+      }
+    } catch(e) {
+      document.getElementById('blocked-overlay').classList.add('show');
+      document.getElementById('app').style.display = 'none';
+    }
+  }
+})();
+
 function randomHash() {
   return Math.random().toString(36).slice(2,10);
 }
@@ -939,21 +1049,15 @@ setInterval(()=>history.replaceState(null,'','#'+randomHash()), 20000);
 // ────────────────────────────────────────────────
 function isAllowedUrl(url) {
   if (!url) return false;
-  // 내부 링크 (javascript:, #, 상대경로) 허용
   if (url.startsWith('javascript:') || url.startsWith('#') || url.startsWith('mailto:')) return true;
   try {
     const u = new URL(url, location.href);
-    // 현재 origin 허용 (게임 자체 페이지)
     if (u.origin === location.origin) return true;
-    // localhost / 127.0.0.1 허용
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
-    // 해정뉴스 허용: fff376327yhed.github.io/hsj_news.io/* (뒤에 뭐가 붙어도 허용)
     if (u.hostname === 'fff376327yhed.github.io' &&
         (u.pathname === '/hsj_news.io' || u.pathname.startsWith('/hsj_news.io/'))) return true;
     return false;
-  } catch(e) {
-    return false;
-  }
+  } catch(e) { return false; }
 }
 
 // 외부 링크 클릭 차단
@@ -971,7 +1075,6 @@ const _open = window.open;
 window.open = (url,...args) => {
   if (!url) return _open(url,...args);
   if (isAllowedUrl(url)) return _open(url,...args);
-  // Firebase / Google 인증 팝업 허용
   if (url.includes('firebaseapp.com')||url.includes('accounts.google.com')||url.includes('googleapis.com')) return _open(url,...args);
   toast('팝업이 차단되었습니다','info',1800);
   return null;
@@ -1341,6 +1444,46 @@ function updateEarnUI(){
 }
 
 // ════════════════════════════════════════════════
+// 🏆 LEADERBOARD
+// ════════════════════════════════════════════════
+async function loadLeaderboard() {
+  const body = document.getElementById('lb-body');
+  if (!body) return;
+  body.innerHTML = '<div class="lb-loading"><div class="lb-spinner"></div>순위 불러오는 중...</div>';
+  try {
+    const url = `${SCRIPT_URL}?action=leaderboard&secret=${ACHIEVEMENT_SECRET}&limit=10`;
+    const res = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('파싱 오류'); }
+
+    // data가 배열이거나 { players: [...] } 형태 모두 처리
+    const players = Array.isArray(data) ? data : (data.players || data.data || []);
+    if (!players.length) throw new Error('empty');
+
+    // coins 내림차순 정렬
+    players.sort((a, b) => (b.coins ?? b.coin ?? 0) - (a.coins ?? a.coin ?? 0));
+
+    const rankClass = ['r1','r2','r3'];
+    const rankEmoji = ['🥇','🥈','🥉'];
+    body.innerHTML = `<ul class="lb-list">${players.slice(0,10).map((p,i) => {
+      const rc = rankClass[i] || 'rn';
+      const label = rankEmoji[i] || `${i+1}`;
+      const name = (p.name || p.displayName || '???').slice(0,14);
+      const coins = Number(p.coins ?? p.coin ?? 0).toLocaleString();
+      return `<li class="lb-row">
+        <span class="lb-rank ${rc}">${label}</span>
+        <span class="lb-name">${name}</span>
+        <span class="lb-coins">💰 ${coins}</span>
+      </li>`;
+    }).join('')}</ul>`;
+  } catch(e) {
+    body.innerHTML = '<div class="lb-empty">랭킹 데이터를 불러올 수 없습니다.<br><small style="opacity:.5">Apps Script 리더보드 액션 필요</small></div>';
+  }
+}
+window.loadLeaderboard = loadLeaderboard;
+
+// ════════════════════════════════════════════════
 // FIREBASE
 // ════════════════════════════════════════════════
 let auth=null,db=null,currentUser=null;
@@ -1352,6 +1495,8 @@ async function initFirebase() {
     const ff=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const app=initializeApp(FIREBASE_CONFIG);
     auth=fa.getAuth(app); db=ff.getFirestore(app);
+    // 자동 로그인 유지를 위해 명시적으로 LOCAL persistence 설정
+    await fa.setPersistence(auth, fa.browserLocalPersistence);
     window._fa=fa; window._ff=ff; return true;
   } catch(e){console.warn('Firebase:',e);return false;}
 }
@@ -1416,7 +1561,6 @@ document.getElementById('btn-guest-login').onclick=async()=>{
 };
 window.logout=async()=>{
   SFX.click();
-  // UI 전환을 await 전에 먼저 실행 (saveCoins가 느려도 즉시 로비로)
   document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('game-screen').classList.remove('active');
@@ -1425,7 +1569,9 @@ window.logout=async()=>{
   // 코인 저장은 백그라운드에서 처리
   if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
   currentUser=null;
-  if(auth) auth.signOut().catch(()=>{});
+  // ⚠️ Firebase signOut은 하지 않음 — 재방문 시 자동 로그인 유지
+  // 완전 로그아웃을 원하면 auth.signOut() 수동 호출
+  loadLeaderboard(); // 로비 돌아올 때 리더보드 갱신
 };
 
 async function enterGame(user) {
@@ -2235,6 +2381,8 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 (async()=>{
   const fbOk=await initFirebase();
   document.getElementById('setup-banner').style.display=fbOk?'none':'block';
+  // 리더보드 즉시 로드
+  loadLeaderboard();
   if(fbOk){
     // 리다이렉트 로그인 결과 처리
     try{
