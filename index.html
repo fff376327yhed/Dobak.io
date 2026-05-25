@@ -608,6 +608,40 @@ body::after{
 .btn-earn-back:hover{border-color:rgba(255,255,255,.28);color:var(--text);}
 .earn-tap-hint{font-size:.65rem;color:rgba(255,255,255,.18);letter-spacing:.08em;animation:flicker 3s infinite;}
 
+/* ═══ VIEW BAR — 패 보기 중 떠있는 액션바 */
+#view-bar{
+  display:none;position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%);
+  z-index:190;
+  background:rgba(6,4,2,.92);border:1px solid rgba(200,162,50,.35);
+  border-radius:40px;padding:.55rem 1.1rem;
+  display:none;align-items:center;gap:.8rem;
+  box-shadow:0 0 30px rgba(0,0,0,.8),0 0 0 1px rgba(200,162,50,.1);
+  animation:hint-slide .3s cubic-bezier(.34,1.56,.64,1);
+}
+#view-bar.show{display:flex;}
+.view-bar-label{font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.15em;color:var(--muted);white-space:nowrap;}
+.btn-view-restart{
+  background:linear-gradient(135deg,#8b0000,#cc0000);color:white;
+  border:1px solid #ff2244;font-family:'Bebas Neue',sans-serif;
+  font-size:.9rem;letter-spacing:.1em;padding:7px 20px;
+  border-radius:20px;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.btn-view-restart:hover{box-shadow:0 0 18px rgba(255,34,68,.5);transform:scale(1.04);}
+.btn-view-exit{
+  background:transparent;color:var(--muted);
+  border:1px solid rgba(255,255,255,.15);font-family:'Bebas Neue',sans-serif;
+  font-size:.9rem;letter-spacing:.1em;padding:7px 16px;
+  border-radius:20px;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.btn-view-exit:hover{border-color:rgba(255,255,255,.3);color:var(--text);}
+.btn-view-bar-peek{
+  background:rgba(200,162,50,.1);color:var(--gold);
+  border:1px solid rgba(200,162,50,.35);font-family:'Bebas Neue',sans-serif;
+  font-size:1rem;letter-spacing:.08em;padding:8px 20px;
+  border-radius:3px;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.btn-view-bar-peek:hover{background:rgba(200,162,50,.22);box-shadow:0 0 12px rgba(200,162,50,.25);}
+
 /* ═══ LEADERBOARD */
 #leaderboard-wrap{
   width:100%;max-width:400px;
@@ -845,6 +879,13 @@ body::after{
   <div class="game-bottom-bar">
     <button class="btn-persistent restart" onclick="startNewGame()">🔄 다시하기</button>
     <button class="btn-persistent exit" onclick="logout()">← 나가기</button>
+  </div>
+
+  <!-- 패 보기 모드 플로팅 바 -->
+  <div id="view-bar">
+    <span class="view-bar-label">👁 패 확인 중</span>
+    <button class="btn-view-restart" onclick="restartFromResult()">🃏 다시 시작</button>
+    <button class="btn-view-exit" onclick="exitFromResult()">← 나가기</button>
   </div>
 
 </div><!-- /game-screen -->
@@ -1166,31 +1207,9 @@ const SFX={
   showdown:()=>{playTone(200,.5,'sawtooth',.07,.02,.45);setTimeout(SFX.flip,300);}
 };
 
-// ─── EXTERNAL BGM ───
-const EXTERNAL_BGM_URLS = [
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Bossa%20Antigua.mp3',
-];
-
-async function tryExternalBGM() {
-  for (const url of EXTERNAL_BGM_URLS) {
-    try {
-      const audio=new Audio();
-      audio.loop=true; audio.volume=0.1;
-      audio.preload='none';
-      await new Promise((res,rej)=>{
-        audio.addEventListener('canplaythrough',res,{once:true});
-        audio.addEventListener('error',rej,{once:true});
-        audio.src=url; audio.load();
-        setTimeout(rej,5000); // 5s timeout
-      });
-      bgmAudio=audio; usingExternalBGM=true;
-      return true;
-    } catch(e){ continue; }
-  }
-  return false;
-}
+// 외부 BGM 비활성화 — ERR_CACHE_OPERATION_NOT_SUPPORTED 방지
+const EXTERNAL_BGM_URLS = [];
+async function tryExternalBGM() { return false; }
 
 // ─── INTERNAL BGM: Enhanced Jazz Loop ───
 const JAZZ_NOTES=[
@@ -1769,6 +1788,7 @@ function showStageHint(stage) {
 window.startNewGame=async()=>{
   if(gs.active) return;
   lockActions(false); // 이전 게임에서 락이 남아있을 경우 반드시 해제
+  document.getElementById('view-bar').classList.remove('show');
   initAudio(); SFX.newgame();
   document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('hint-panel').classList.add('hidden');
@@ -2317,16 +2337,27 @@ function showResult(type,delta,pName,dName,pRes,dRes){
   const btnRow=document.querySelector('.result-btn-row');
   btnRow.innerHTML=`
     <button class="btn-restart" onclick="restartFromResult()">🃏 다시 시작</button>
+    <button class="btn-view-bar-peek" onclick="viewFromResult()">👁 패 보기</button>
     <button class="btn-exit-result" onclick="exitFromResult()">← 나가기</button>`;
 }
 
+window.viewFromResult=()=>{
+  SFX.click();
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('view-bar').classList.add('show');
+  // 딜러 카드 앞면 공개 (이미 공개된 경우 중복 무방)
+  revealDealerCards();
+};
+
 window.restartFromResult=()=>{
   document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('view-bar').classList.remove('show');
   SFX.click();
   startNewGame();
 };
 window.exitFromResult=()=>{
   document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('view-bar').classList.remove('show');
   SFX.click();
   logout();
 };
