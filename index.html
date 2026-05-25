@@ -934,20 +934,43 @@ history.replaceState(null,'','#'+randomHash());
 // 주기적으로 변경
 setInterval(()=>history.replaceState(null,'','#'+randomHash()), 20000);
 
+// ────────────────────────────────────────────────
+// 🔒 URL 허용 목록 — 해정뉴스 + localhost만 허용
+// ────────────────────────────────────────────────
+function isAllowedUrl(url) {
+  if (!url) return false;
+  // 내부 링크 (javascript:, #, 상대경로) 허용
+  if (url.startsWith('javascript:') || url.startsWith('#') || url.startsWith('mailto:')) return true;
+  try {
+    const u = new URL(url, location.href);
+    // 현재 origin 허용 (게임 자체 페이지)
+    if (u.origin === location.origin) return true;
+    // localhost / 127.0.0.1 허용
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    // 해정뉴스 허용: fff376327yhed.github.io/hsj_news.io/* (뒤에 뭐가 붙어도 허용)
+    if (u.hostname === 'fff376327yhed.github.io' &&
+        (u.pathname === '/hsj_news.io' || u.pathname.startsWith('/hsj_news.io/'))) return true;
+    return false;
+  } catch(e) {
+    return false;
+  }
+}
+
 // 외부 링크 클릭 차단
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href]');
   if (!a) return;
-  const href = a.href || '';
-  if (href.startsWith('javascript:') || href.startsWith(location.origin) || href.startsWith('#')) return;
+  const href = a.getAttribute('href') || '';
+  if (isAllowedUrl(a.href || href)) return;
   e.preventDefault();
   e.stopPropagation();
   toast('외부 링크는 차단되었습니다','info',1800);
 }, true);
-// window.open 차단 (Firebase 인증 팝업은 허용)
+// window.open 차단 (Firebase 인증 팝업 및 허용 URL은 통과)
 const _open = window.open;
 window.open = (url,...args) => {
-  if (!url || url.startsWith(location.origin)) return _open(url,...args);
+  if (!url) return _open(url,...args);
+  if (isAllowedUrl(url)) return _open(url,...args);
   // Firebase / Google 인증 팝업 허용
   if (url.includes('firebaseapp.com')||url.includes('accounts.google.com')||url.includes('googleapis.com')) return _open(url,...args);
   toast('팝업이 차단되었습니다','info',1800);
@@ -1582,6 +1605,7 @@ function showStageHint(stage) {
 // ════════════════════════════════════════════════
 window.startNewGame=async()=>{
   if(gs.active) return;
+  lockActions(false); // 이전 게임에서 락이 남아있을 경우 반드시 해제
   initAudio(); SFX.newgame();
   document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('hint-panel').classList.add('hidden');
@@ -1636,7 +1660,9 @@ window.playerFold=async()=>{
     if(currentUser) saveCoins(currentUser.uid,gs.balance).catch(()=>{});
     showResult('fold',-gs.playerBet,null,null,null,null);
   } catch(err) {
-    }
+  } finally {
+    lockActions(false); // 항상 락 해제 (미해제 시 다음 게임 버튼 먹통 방지)
+  }
 };
 
 window.playerCheck=async()=>{
