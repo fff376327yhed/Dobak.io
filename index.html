@@ -1444,33 +1444,42 @@ function updateEarnUI(){
 }
 
 // ════════════════════════════════════════════════
-// 🏆 LEADERBOARD
+// 🏆 LEADERBOARD (JSONP — CORS 우회)
 // ════════════════════════════════════════════════
+function fetchJSONP(url, timeout=8000) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_jsonp_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, timeout);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('load error')); };
+    script.src = url + '&callback=' + cbName;
+    document.head.appendChild(script);
+  });
+}
+
 async function loadLeaderboard() {
   const body = document.getElementById('lb-body');
   if (!body) return;
   body.innerHTML = '<div class="lb-loading"><div class="lb-spinner"></div>순위 불러오는 중...</div>';
   try {
     const url = `${SCRIPT_URL}?action=leaderboard&secret=${ACHIEVEMENT_SECRET}&limit=10`;
-    const res = await fetch(url, { redirect: 'follow' });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch(e) { throw new Error('파싱 오류'); }
-
-    // data가 배열이거나 { players: [...] } 형태 모두 처리
-    const players = Array.isArray(data) ? data : (data.players || data.data || []);
+    const data = await fetchJSONP(url);
+    const players = Array.isArray(data) ? data : (data.players || []);
     if (!players.length) throw new Error('empty');
-
-    // coins 내림차순 정렬
-    players.sort((a, b) => (b.coins ?? b.coin ?? 0) - (a.coins ?? a.coin ?? 0));
 
     const rankClass = ['r1','r2','r3'];
     const rankEmoji = ['🥇','🥈','🥉'];
     body.innerHTML = `<ul class="lb-list">${players.slice(0,10).map((p,i) => {
       const rc = rankClass[i] || 'rn';
       const label = rankEmoji[i] || `${i+1}`;
-      const name = (p.name || p.displayName || '???').slice(0,14);
-      const coins = Number(p.coins ?? p.coin ?? 0).toLocaleString();
+      const name = (p.name || '???').slice(0,14);
+      const coins = Number(p.coins ?? 0).toLocaleString();
       return `<li class="lb-row">
         <span class="lb-rank ${rc}">${label}</span>
         <span class="lb-name">${name}</span>
@@ -1478,7 +1487,7 @@ async function loadLeaderboard() {
       </li>`;
     }).join('')}</ul>`;
   } catch(e) {
-    body.innerHTML = '<div class="lb-empty">랭킹 데이터를 불러올 수 없습니다.<br><small style="opacity:.5">Apps Script 리더보드 액션 필요</small></div>';
+    body.innerHTML = '<div class="lb-empty">랭킹을 불러올 수 없습니다.</div>';
   }
 }
 window.loadLeaderboard = loadLeaderboard;
@@ -1672,7 +1681,7 @@ function bestHand(cards){
 // ════════════════════════════════════════════════
 // 📊 GAME RESULT SAVE (매 게임 종료 시 현재 코인 전송)
 // ════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJBmnDIYTLmvOd3Y2CsTXKXpbgiWE8kWHmwVejQETU9YAjdkS4Gl-5ZVNAsC7g91Q/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGpysSOOaTWSXDUV9vqrueWnn42hByh5EHTANCZWTf5yDIa7BAUMnliJhLFlvHAcDs/exec';
 const ACHIEVEMENT_SECRET = 'hsgcomet';
 
 // ✅ 수정 후
