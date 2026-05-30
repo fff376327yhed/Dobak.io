@@ -1119,6 +1119,7 @@ body::after{
   background:rgba(6,4,4,.72);
   display:none;align-items:center;justify-content:center;
   backdrop-filter:blur(2px);
+  pointer-events:none;
 }
 #opponent-turn-overlay.show{display:flex;}
 .opp-turn-box{
@@ -3299,7 +3300,7 @@ function isLocalhost() {
 
 // ── 턴 타이머 ──
 let _turnTimer = null;
-const TURN_LIMIT = 30;
+const TURN_LIMIT = 120;
 
 function startTurnTimer() {
   clearTurnTimer();
@@ -3322,7 +3323,7 @@ function _updateTimerUI(t, reset = false) {
   const fill = document.getElementById('turn-timer-fill');
   if (!cd || !fill) return;
   if (reset) { cd.textContent = ''; cd.className = ''; fill.style.width = '100%'; fill.className = 'turn-timer-fill'; return; }
-  const urgent = t <= 10;
+  const urgent = t <= 20;
   cd.textContent = t + '초';
   cd.className = urgent ? 'urgent' : '';
   fill.style.width = (t / TURN_LIMIT * 100) + '%';
@@ -4042,8 +4043,14 @@ function initChatUI() {
   fab.classList.add('show');
   panel.classList.remove('open');
   _chatOpen = false;
-  msgBox.innerHTML = `<div class="chat-system-msg">💬 ${OG.opponentName}님과 채팅을 시작해보세요!</div>`;
+  msgBox.innerHTML = `<div class="chat-system-msg">💬 ${OG.opponentName}님과 채팅을 시작해보세요! (상대 턴에도 채팅 가능)</div>`;
   document.getElementById('chat-unread').classList.remove('show');
+  // 채팅 타이틀에 상대방 이름 표시
+  const titleEl = document.querySelector('#chat-panel .chat-title');
+  if (titleEl) titleEl.textContent = `💬 ${OG.opponentName}`;
+  // 입력창 항상 활성화
+  const inp = document.getElementById('chat-input');
+  if (inp) { inp.disabled = false; inp.placeholder = '메시지 입력... (언제든 가능)'; }
 }
 
 function hideChatUI() {
