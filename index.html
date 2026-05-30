@@ -2203,15 +2203,12 @@ async function initFirebase() {
   try {
     const{initializeApp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     const fa=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-    const ff=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const fd=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
     const app=initializeApp(FIREBASE_CONFIG);
     auth=fa.getAuth(app);
-    // ✅ experimentalForceLongPolling: WebSocket 연결 실패 시 LongPolling으로 자동 폴백
-    //    → "client is offline" 오류의 근본 원인(WebSocket 미연결) 해결
-    db=ff.initializeFirestore(app,{experimentalForceLongPolling:true,useFetchStreams:false});
+    db=fd.getDatabase(app);
     await fa.setPersistence(auth, fa.browserLocalPersistence);
-    try { await ff.enableNetwork(db); } catch(e){}
-    window._fa=fa; window._ff=ff; return true;
+    window._fa=fa; window._fd=fd; return true;
   } catch(e){console.warn('Firebase:',e);return false;}
 }
 async function loadCoins(uid) {
@@ -2221,15 +2218,17 @@ async function loadCoins(uid) {
     const parsed=parseInt(local);
     return isNaN(parsed)?1000:Math.max(0,parsed);
   }
-  // localStorage 없으면 Firestore 확인 (최초 로그인)
+  // localStorage 없으면 Realtime DB 확인 (최초 로그인)
   if(db&&uid!=='guest'){
-    try{const s=await window._ff.getDoc(window._ff.doc(db,'players',uid));if(s.exists())return s.data().coins??1000;}catch(e){}
+    try{
+      const snap=await window._fd.get(window._fd.ref(db,`players/${uid}/coins`));
+      if(snap.exists()) return snap.val()??1000;
+    }catch(e){}
   }
   return 1000;
 }
-// ✅ 수정 후
 async function saveCoins(uid,amt) {
-  // ── 기존 저장 ──
+  // ── localStorage 저장 ──
   localStorage.setItem(`bap_coins_${uid}`, amt);
   console.log(`[포커💾] saveCoins: uid=${uid}, amt=${amt}`);
 
@@ -2243,8 +2242,11 @@ async function saveCoins(uid,amt) {
   }
 
   if(db && uid !== 'guest'){
-    try{await window._ff.setDoc(window._ff.doc(db,'players',uid),{coins:amt,updatedAt:Date.now()},{merge:true});}catch(e){
-      console.warn('[포커⚠️] Firestore 저장 실패:', e);
+    try{
+      await window._fd.set(window._fd.ref(db,`players/${uid}`),{coins:amt,updatedAt:Date.now()});
+      console.log('[포커💾] Realtime DB 저장 완료');
+    }catch(e){
+      console.warn('[포커⚠️] Realtime DB 저장 실패:', e);
     }
   }
 }
